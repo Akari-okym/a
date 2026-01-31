@@ -152,6 +152,10 @@ def estimate_discount_rate(df, model='hyperbolic'):
     Returns:
         Estimated discount rate k (per day)
     """
+    # Constants for numerical stability
+    INVALID_K_PENALTY = 1e10  # Large penalty for invalid discount rates
+    EPSILON = 1e-10  # Small value to prevent log(0)
+    
     if model == 'hyperbolic':
         discount_func = hyperbolic_discount_function
     elif model == 'exponential':
@@ -161,7 +165,7 @@ def estimate_discount_rate(df, model='hyperbolic'):
     
     def negative_log_likelihood(k):
         if k <= 0:
-            return 1e10
+            return INVALID_K_PENALTY
         
         # Calculate discount factors for each delay
         discount_factors = discount_func(df['delay_days'].values, k)
@@ -171,8 +175,7 @@ def estimate_discount_rate(df, model='hyperbolic'):
         # Simplified: P(delayed) = discount_factor
         
         # Calculate log likelihood
-        epsilon = 1e-10
-        p_delayed = np.clip(discount_factors, epsilon, 1 - epsilon)
+        p_delayed = np.clip(discount_factors, EPSILON, 1 - EPSILON)
         
         choices = df['choice'].values
         log_likelihood = np.sum(
@@ -183,6 +186,8 @@ def estimate_discount_rate(df, model='hyperbolic'):
         return -log_likelihood
     
     # Initial guess: k ~ 0.001 per day (moderate discounting)
+    # This corresponds to k_annual ~ 0.365 per year, a reasonable starting point
+    # for typical intertemporal choice data
     result = minimize(
         negative_log_likelihood,
         x0=[0.001],
