@@ -52,7 +52,8 @@ def generate_synthetic_data(n_participants=20, delays=[7, 14, 30, 60, 90, 180],
         participant_id = f"P{i+1:03d}"
         
         # Generate true discount rate (log-normal to ensure positive)
-        r_true = np.random.lognormal(np.log(r_mean) - 0.5 * r_sd**2, r_sd)
+        # Note: r_sd here is interpreted as the SD of the log-normal in log-space
+        r_true = np.random.lognormal(mean=np.log(r_mean), sigma=r_sd)
         true_params[participant_id] = {'r': r_true}
         
         for t in delays:
